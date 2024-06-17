@@ -1,0 +1,66 @@
+name: Cloud Run
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency: ${{ github.ref }}-${{ github.workflow }}
+
+env:
+  IMAGE: asia-docker.pkg.dev/voltaic-country-280607/docker-1/vuanem-ecommerce-extract:${{ github.ref_name }}
+  SERVICE_NAME: vuanem-ecommerce-extract-${{ github.ref_name }}
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - run: gcloud auth configure-docker us-docker.pkg.dev
+
+      - uses: docker/build-push-action@v5
+        with:
+          tags: ${{ env.IMAGE }}
+          push: true
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-image
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - run: gcloud config set run/region asia-southeast1
+
+      - run: echo "GCP_SA=$(gcloud config list account --format "value(core.account)")" >> $GITHUB_ENV
+
+      - id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: ${{ env.IMAGE }}
+          timeout: 900s
+          flags: |
+            --service-account ${{ env.GCP_SA }}
+            --cpu 1
+            --memory 4Gi
+
+      - run: |-
+          gcloud run services update ${{ env.SERVICE_NAME }} \
+            --update-env-vars=PUBLIC_URL=${{ steps.deploy.outputs.url }}
+
+      - run: |-
+          gcloud run services add-iam-policy-binding ${{ env.SERVICE_NAME }} \
+            --member="allUsers" \
+            --role="roles/run.invoker"

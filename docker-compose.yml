@@ -1,0 +1,12 @@
+services:
+    app:
+        image: us-docker.pkg.dev/voltaic-country-280607/docker-1/vuanem-ecommerce-analytics
+        build: .
+        platform: linux/amd64
+        volumes:
+            - ./service-account.json:/service-account.json
+        environment:
+            GOOGLE_APPLICATION_CREDENTIALS: /service-account.json
+        env_file: .env
+        ports:
+            - 8080:8080
