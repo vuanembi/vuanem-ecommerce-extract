@@ -7,7 +7,7 @@ on:
 concurrency: ${{ github.ref }}-${{ github.workflow }}
 
 env:
-  IMAGE: asia-docker.pkg.dev/voltaic-country-280607/docker-1/vuanem-ecommerce-extract:${{ github.ref_name }}
+  IMAGE: us-docker.pkg.dev/voltaic-country-280607/gcr.io/vuanem-ecommerce-extract:${{ github.ref_name }}
   SERVICE_NAME: vuanem-ecommerce-extract-${{ github.ref_name }}
 
 jobs:
@@ -41,7 +41,7 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - run: gcloud config set run/region asia-southeast1
+      - run: gcloud config set run/region us-central1
 
       - run: echo "GCP_SA=$(gcloud config list account --format "value(core.account)")" >> $GITHUB_ENV
 
